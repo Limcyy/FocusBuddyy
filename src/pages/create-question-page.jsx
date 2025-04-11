@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import arrowDown from '../assets/arrow-down.png'
 import { useNavigate } from 'react-router-dom'
 import { useQuestion } from '../context/QuestionContext'
+import serialCommunication from '../utils/serialCommunication'
 
 function CreateQuestionPage() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ function CreateQuestionPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
   const [error, setError] = useState('');
+  const [isSerialConnected, setIsSerialConnected] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     options: ['', '', '', ''],
@@ -28,6 +30,38 @@ function CreateQuestionPage() {
     { value: '10', label: '10 sekund' },
     { value: '20', label: '20 sekund' }
   ];
+
+  // Set up serial data callback
+  useEffect(() => {
+    serialCommunication.setDataReceivedCallback(handleSerialData);
+    
+    return () => {
+      serialCommunication.setDataReceivedCallback(null);
+    };
+  }, []);
+
+  const handleSerialData = (data) => {
+    // Process incoming data from microbit
+    console.log("Received from microbit:", data);
+    // Example: "S1|a" means Student 1 answered option a
+    // You can process this data as needed
+  };
+
+  const connectToSerial = async () => {
+    try {
+      const connected = await serialCommunication.connect();
+      setIsSerialConnected(connected);
+      if (connected) {
+        setError('');
+      } else {
+        setError('Failed to connect to microbit');
+      }
+    } catch (err) {
+      console.error("Serial connection error:", err);
+      setError('Error connecting to microbit');
+      setIsSerialConnected(false);
+    }
+  };
 
   const handleOptionChange = (index, value) => {
     const newOptions = [...formData.options];
@@ -64,13 +98,31 @@ function CreateQuestionPage() {
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
-      updateQuestionData({
-        ...formData,
-        timeLimit: parseInt(formData.timeLimit)
-      });
-      navigate('/display');
+      // Connect to serial if not connected
+      if (!isSerialConnected) {
+        await connectToSerial();
+        if (!serialCommunication.isConnected) {
+          setError('Please connect to microbit before starting');
+          return;
+        }
+      }
+
+      try {
+        // Send the question command to microbit
+        await serialCommunication.sendData("all|question");
+        console.log("Question sent to microbit");
+        
+        updateQuestionData({
+          ...formData,
+          timeLimit: parseInt(formData.timeLimit)
+        });
+        navigate('/display');
+      } catch (err) {
+        console.error("Error sending data to microbit:", err);
+        setError('Failed to send question to microbit');
+      }
     }
   };
 
@@ -176,6 +228,16 @@ function CreateQuestionPage() {
             )}
           </div>
         </div>
+        
+        <div className="serial-connection">
+          <button 
+            className={`connect-serial-btn ${isSerialConnected ? 'connected' : ''}`} 
+            onClick={connectToSerial}
+          >
+            {isSerialConnected ? 'Connected ✓' : 'Connect to Microbit'}
+          </button>
+        </div>
+        
         {error && <p className="error-message">{error}</p>}
         <button className="create-question-btn" onClick={handleSubmit}>
           Vytvořit otázku

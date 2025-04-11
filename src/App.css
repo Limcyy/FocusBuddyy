@@ -989,6 +989,73 @@ img {
   to { opacity: 1; transform: translateY(0); }
 }
 
+.serial-connection {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.connect-serial-btn {
+  background-color: #4F90CD;
+  border: none;
+  border-radius: 1rem;
+  padding: 0.8rem 1.5rem;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0px 4px 0px 0px #2F2F2F;
+}
+
+.connect-serial-btn:hover {
+  transform: translateY(-2px);
+}
+
+.connect-serial-btn.connected {
+  background-color: #81C75B;
+}
+
+.student-responses {
+  margin-top: 2rem;
+  width: 80%;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.student-responses h3 {
+  color: #363636;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.responses-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.response-item {
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.student-id {
+  font-weight: 700;
+  color: #4F90CD;
+}
+
+.student-answer {
+  font-weight: 600;
+  color: #363636;
+}
+
 
 
 

@@ -1,11 +1,32 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuestion } from '../context/QuestionContext';
 import { useEffect, useState } from 'react';
+import serialCommunication from '../utils/serialCommunication';
 
 function QuestionDisplayPage() {
   const navigate = useNavigate();
   const { questionData } = useQuestion();
   const [timeLeft, setTimeLeft] = useState(questionData.timeLimit);
+  const [studentResponses, setStudentResponses] = useState([]);
+
+  useEffect(() => {
+    // Set up serial data handler
+    serialCommunication.setDataReceivedCallback(handleSerialData);
+    
+    return () => {
+      serialCommunication.setDataReceivedCallback(null);
+    };
+  }, []);
+  
+  const handleSerialData = (data) => {
+    // Process incoming data from microbit
+    const trimmedData = data.trim();
+    if (trimmedData.includes('|')) {
+      const [student, answer] = trimmedData.split('|');
+      // Add to the responses
+      setStudentResponses(prev => [...prev, { student, answer, timestamp: new Date() }]);
+    }
+  };
 
   useEffect(() => {
     if (!questionData.timeLimit) return;
@@ -51,6 +72,20 @@ function QuestionDisplayPage() {
             </div>
           ))}
         </div>
+        
+        {studentResponses.length > 0 && (
+          <div className="student-responses">
+            <h3>Student Responses:</h3>
+            <div className="responses-list">
+              {studentResponses.map((response, index) => (
+                <div key={index} className="response-item">
+                  <span className="student-id">{response.student}:</span>
+                  <span className="student-answer">{response.answer}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       {timeLeft > 0 && (
         <div className='timer-container'>
@@ -62,4 +97,4 @@ function QuestionDisplayPage() {
   );
 }
 
-export default QuestionDisplayPage
+export default QuestionDisplayPage;
