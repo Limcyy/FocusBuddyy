@@ -1401,6 +1401,33 @@ img {
   100% { opacity: 1; }
 }
 
+/* Add this to your existing CSS */
+.refresh-students-btn {
+  background-color: #4F90CD;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem auto;
+}
+
+.refresh-students-btn:hover {
+  background-color: #3A7CB3;
+  transform: translateY(-2px);
+}
+
+.refresh-students-btn:active {
+  transform: translateY(1px);
+}
+
 
 
 

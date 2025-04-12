@@ -5,6 +5,7 @@ export class SerialCommunication {
     this.writer = null;
     this.isConnected = false;
     this.onDataReceived = null;
+    this.incomingBuffer = '';
   }
 
   async connect() {
@@ -58,16 +59,37 @@ export class SerialCommunication {
           // Convert the received bytes to a string
           const decodedValue = new TextDecoder().decode(value);
           
-          // Call the callback if defined
-          if (this.onDataReceived) {
-            this.onDataReceived(decodedValue);
-          }
+          // Add to buffer and process
+          this.incomingBuffer += decodedValue;
+          this.processIncomingBuffer();
         }
       } catch (error) {
         console.error("Error reading data:", error);
       } finally {
         this.reader.releaseLock();
       }
+    }
+  }
+
+  processIncomingBuffer() {
+    // Split buffer by newlines and process each complete line
+    const lines = this.incomingBuffer.split(/\r?\n/);
+    
+    // Keep the last incomplete line in the buffer
+    this.incomingBuffer = lines.pop() || '';
+    
+    // Process complete lines
+    for (const line of lines) {
+      if (line.trim()) {
+        this.processLine(line.trim());
+      }
+    }
+  }
+
+  processLine(line) {
+    // Call the callback if defined
+    if (this.onDataReceived) {
+      this.onDataReceived(line);
     }
   }
 
