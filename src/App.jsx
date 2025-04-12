@@ -7,6 +7,8 @@ import QuestionDisplayPage from './pages/question-display-page'
 import QuestionResultsPage from './pages/question-results-page'
 import AddPointsPage from './pages/add-points-page'
 import { QuestionProvider } from './context/QuestionContext'
+import { SerialProvider } from './context/SerialContext'
+import ConnectionModal from './components/ConnectionModal'
 
 function MainPage() {
   const navigate = useNavigate();
@@ -32,17 +34,20 @@ function MainPage() {
 
 function App() {
   return (
-    <QuestionProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<MainPage />} />
-          <Route path="/create" element={<CreateQuestionPage />} />
-          <Route path="/display" element={<QuestionDisplayPage />} />
-          <Route path="/results" element={<QuestionResultsPage />} />
-          <Route path="/add" element={<AddPointsPage />} />
-        </Routes>
-      </Router>
-    </QuestionProvider>
+    <SerialProvider>
+      <QuestionProvider>
+        <Router>
+          <ConnectionModal />
+          <Routes>
+            <Route path="/" element={<MainPage />} />
+            <Route path="/create" element={<CreateQuestionPage />} />
+            <Route path="/display" element={<QuestionDisplayPage />} />
+            <Route path="/results" element={<QuestionResultsPage />} />
+            <Route path="/add" element={<AddPointsPage />} />
+          </Routes>
+        </Router>
+      </QuestionProvider>
+    </SerialProvider>
   )
 }
 

@@ -1,34 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
+import { useSerial } from '../context/SerialContext';
 import serialCommunication from '../utils/serialCommunication';
 
 function AddPointsPage() {
   const navigate = useNavigate();
+  const { isConnected } = useSerial();
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [points, setPoints] = useState('120');
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isSerialConnected, setIsSerialConnected] = useState(false);
 
-  // Connect to serial and request student list
+  // Request student list when component mounts
   useEffect(() => {
     const fetchStudents = async () => {
-      try {
-        // Check if already connected
-        if (!serialCommunication.isConnected) {
-          const connected = await serialCommunication.connect();
-          setIsSerialConnected(connected);
-          
-          if (!connected) {
-            setError('Failed to connect to microbit');
-            setIsLoading(false);
-            return;
-          }
-        } else {
-          setIsSerialConnected(true);
-        }
+      if (!isConnected) {
+        setIsLoading(false);
+        return;
+      }
 
+      try {
         // Set up response callback
         serialCommunication.setDataReceivedCallback(handleSerialData);
         
@@ -55,7 +47,7 @@ function AddPointsPage() {
     return () => {
       serialCommunication.setDataReceivedCallback(null);
     };
-  }, []);
+  }, [isConnected]);
 
   const handleSerialData = (data) => {
     // Process incoming data from microbit
@@ -72,26 +64,6 @@ function AddPointsPage() {
         return prev;
       });
       setIsLoading(false);
-    }
-  };
-
-  const connectToSerial = async () => {
-    try {
-      const connected = await serialCommunication.connect();
-      setIsSerialConnected(connected);
-      
-      if (connected) {
-        setError('');
-        // Send ping to get student list
-        serialCommunication.setDataReceivedCallback(handleSerialData);
-        await serialCommunication.sendData("ping");
-      } else {
-        setError('Failed to connect to microbit');
-      }
-    } catch (err) {
-      console.error("Serial connection error:", err);
-      setError('Error connecting to microbit');
-      setIsSerialConnected(false);
     }
   };
 
@@ -115,13 +87,9 @@ function AddPointsPage() {
     }
 
     try {
-      // Connect if not connected
-      if (!isSerialConnected) {
-        await connectToSerial();
-        if (!serialCommunication.isConnected) {
-          setError('Please connect to microbit before submitting points');
-          return;
-        }
+      if (!isConnected) {
+        setError('Microbit not connected');
+        return;
       }
 
       // Send points to each selected student
@@ -140,6 +108,9 @@ function AddPointsPage() {
 
   return (
     <div className='create-question-container'>
+      <button className="back-button" onClick={() => navigate('/')}>
+        <span className="back-arrow">←</span> Zpět
+      </button>
       <div className='create-question-form-container'>
         <h1 style={{color: '#3F3F3F', fontSize: '2.5rem'}}>Vyberte si žáky a počet bodů</h1>
         <div className="deviding-line"></div>
@@ -159,13 +130,16 @@ function AddPointsPage() {
             ))}
           </div>
         ) : (
-          <div className="serial-connection">
-            <button 
-              className={`connect-serial-btn ${isSerialConnected ? 'connected' : ''}`} 
-              onClick={connectToSerial}
-            >
-              {isSerialConnected ? 'Connected ✓' : 'Connect to Microbit'}
-            </button>
+          <div className="no-students-message">
+            <p>Nebyly nalezeni žádní studenti.</p>
+            <p>Zkontrolujte, zda je microbit správně připojen a obsahuje seznam studentů.</p>
+          </div>
+        )}
+        
+        {isConnected && (
+          <div className="connection-status">
+            <div className="status-indicator connected"></div>
+            <span>Připojeno k Microbit</span>
           </div>
         )}
         

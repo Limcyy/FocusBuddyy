@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react'
 import arrowDown from '../assets/arrow-down.png'
 import { useNavigate } from 'react-router-dom'
 import { useQuestion } from '../context/QuestionContext'
+import { useSerial } from '../context/SerialContext'
 import serialCommunication from '../utils/serialCommunication'
 
 function CreateQuestionPage() {
   const navigate = useNavigate();
   const { updateQuestionData } = useQuestion();
+  const { isConnected } = useSerial();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isTimeDropdownOpen, setIsTimeDropdownOpen] = useState(false);
   const [error, setError] = useState('');
-  const [isSerialConnected, setIsSerialConnected] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     options: ['', '', '', ''],
@@ -45,22 +46,6 @@ function CreateQuestionPage() {
     console.log("Received from microbit:", data);
     // Example: "S1|a" means Student 1 answered option a
     // You can process this data as needed
-  };
-
-  const connectToSerial = async () => {
-    try {
-      const connected = await serialCommunication.connect();
-      setIsSerialConnected(connected);
-      if (connected) {
-        setError('');
-      } else {
-        setError('Failed to connect to microbit');
-      }
-    } catch (err) {
-      console.error("Serial connection error:", err);
-      setError('Error connecting to microbit');
-      setIsSerialConnected(false);
-    }
   };
 
   const handleOptionChange = (index, value) => {
@@ -100,13 +85,9 @@ function CreateQuestionPage() {
 
   const handleSubmit = async () => {
     if (validateForm()) {
-      // Connect to serial if not connected
-      if (!isSerialConnected) {
-        await connectToSerial();
-        if (!serialCommunication.isConnected) {
-          setError('Please connect to microbit before starting');
-          return;
-        }
+      if (!isConnected) {
+        setError('Please connect to microbit before starting');
+        return;
       }
 
       try {
@@ -128,6 +109,9 @@ function CreateQuestionPage() {
 
   return (
     <div className='create-question-container'>
+      <button className="back-button" onClick={() => navigate('/')}>
+        <span className="back-arrow">←</span> Zpět
+      </button>
       <div className='create-question-form-container'>
         <input 
           className={`question-title-input ${error === 'Vyplňte název otázky' ? 'error' : ''}`}
@@ -229,14 +213,12 @@ function CreateQuestionPage() {
           </div>
         </div>
         
-        <div className="serial-connection">
-          <button 
-            className={`connect-serial-btn ${isSerialConnected ? 'connected' : ''}`} 
-            onClick={connectToSerial}
-          >
-            {isSerialConnected ? 'Connected ✓' : 'Connect to Microbit'}
-          </button>
-        </div>
+        {isConnected && (
+          <div className="connection-status">
+            <div className="status-indicator connected"></div>
+            <span>Připojeno k Microbit</span>
+          </div>
+        )}
         
         {error && <p className="error-message">{error}</p>}
         <button className="create-question-btn" onClick={handleSubmit}>

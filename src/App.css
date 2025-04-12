@@ -548,7 +548,7 @@
 .custom-time-option {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem;
   color: white;
@@ -1054,6 +1054,184 @@ img {
 .student-answer {
   font-weight: 600;
   color: #363636;
+}
+
+.connection-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.connection-modal {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0px 15px 25px rgba(0, 0, 0, 0.2);
+  animation: modalFadeIn 0.3s ease-out;
+  border: 5.501px solid #DDD;
+  background-image: url('./assets/actions-bg.png');
+  background-size: cover;
+  background-position: center;
+}
+
+.connection-modal h2 {
+  color: #363636;
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.connection-modal h2::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 3px;
+  background: #FECC41;
+  border-radius: 2px;
+}
+
+.connection-modal p {
+  color: #363636;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.connection-instructions {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  text-align: left;
+  margin: 1.5rem 0;
+  font-weight: 500;
+}
+
+.connection-modal .connect-serial-btn {
+  margin-top: 1rem;
+  background-color: #FECC41;
+  color: rgba(0, 0, 0, 0.7);
+  box-shadow: 0px 5px 0px #F0BA20;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  min-width: 240px;
+  height: 3.5rem;
+}
+
+.connection-modal .connect-serial-btn:disabled {
+  background-color: #e0e0e0;
+  box-shadow: 0px 5px 0px #adadad;
+  cursor: not-allowed;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Add this to your existing CSS */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(129, 199, 91, 0.1);
+  border-radius: 1rem;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-indicator.connected {
+  background-color: #81C75B;
+  box-shadow: 0 0 5px #81C75B;
+}
+
+.connection-status span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #363636;
+}
+
+/* Add this to your existing CSS */
+.no-students-message {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.no-students-message p {
+  color: #363636;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.loading-message {
+  color: #363636;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 2rem 0;
+  text-align: center;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.back-button {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  background: transparent;
+  border: none;
+  color: #4F90CD;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+}
+
+.back-button:hover {
+  transform: translateX(-5px);
+  color: #3A7CB3;
+}
+
+.back-arrow {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .back-button {
+    top: 1rem;
+    left: 1rem;
+    font-size: 1rem;
+  }
+  
+  .back-arrow {
+    font-size: 1.2rem;
+  }
 }
 
 
