@@ -5,9 +5,9 @@ import serialCommunication from '../utils/serialCommunication';
 
 function QuestionDisplayPage() {
   const navigate = useNavigate();
-  const { questionData } = useQuestion();
+  const { questionData, addStudentResponse, studentResponses } = useQuestion();
   const [timeLeft, setTimeLeft] = useState(questionData.timeLimit);
-  const [studentResponses, setStudentResponses] = useState([]);
+  const [localResponses, setLocalResponses] = useState([]);
 
   useEffect(() => {
     // Set up serial data handler
@@ -27,8 +27,20 @@ function QuestionDisplayPage() {
       const [student, answer] = trimmedData.split('|');
       // Make sure it's a valid student response
       if (student && answer) {
-        // Add to the responses
-        setStudentResponses(prev => [...prev, { student, answer, timestamp: new Date() }]);
+        // Store in context so it's available to results page
+        addStudentResponse(student, answer);
+        
+        // Also update local state for display
+        setLocalResponses(prev => {
+          const existingIndex = prev.findIndex(resp => resp.student === student);
+          if (existingIndex !== -1) {
+            const newResponses = [...prev];
+            newResponses[existingIndex] = { student, answer, timestamp: new Date() };
+            return newResponses;
+          } else {
+            return [...prev, { student, answer, timestamp: new Date() }];
+          }
+        });
       }
     }
   };
@@ -58,6 +70,17 @@ function QuestionDisplayPage() {
 
   if (!questionData.title) return null;
 
+  // Map letter answers to colors for visual indication
+  const getAnswerColor = (answer) => {
+    switch(answer.toLowerCase()) {
+      case 'a': return '#F0BA20'; // yellow
+      case 'b': return '#F0484B'; // red
+      case 'c': return '#81C75B'; // green
+      case 'd': return '#4F90CD'; // blue
+      default: return '#888888';
+    }
+  };
+
   return (
     <div className='create-question-container'>
       <div className='display-question-container'>
@@ -78,14 +101,19 @@ function QuestionDisplayPage() {
           ))}
         </div>
         
-        {studentResponses.length > 0 && (
+        {localResponses.length > 0 && (
           <div className="student-responses">
-            <h3>Odpovědi studentů:</h3>
+            <h3>Odpovědi studentů: {localResponses.length}</h3>
             <div className="responses-list">
-              {studentResponses.map((response, index) => (
+              {localResponses.map((response, index) => (
                 <div key={index} className="response-item">
                   <span className="student-id">{response.student}:</span>
-                  <span className="student-answer">{response.answer}</span>
+                  <span 
+                    className="student-answer"
+                    style={{ backgroundColor: getAnswerColor(response.answer), color: 'white', padding: '0 8px', borderRadius: '4px' }}
+                  >
+                    {response.answer.toUpperCase()}
+                  </span>
                 </div>
               ))}
             </div>
