@@ -23,24 +23,37 @@ function QuestionDisplayPage() {
     console.log("Received from microbit:", data);
     
     const trimmedData = data.trim();
+    
+    // Handle possible response formats
+    let student, answer;
+    
     if (trimmedData.includes('|')) {
-      const [student, answer] = trimmedData.split('|');
+      // Format: "S1|a"
+      [student, answer] = trimmedData.split('|');
+      
+      // Clean up student ID - remove any "USER:" prefix
+      if (student.startsWith('USER:')) {
+        student = student.substring(5);
+      }
+      
       // Make sure it's a valid student response
       if (student && answer) {
         // Store in context so it's available to results page
-        addStudentResponse(student, answer);
-        
-        // Also update local state for display
-        setLocalResponses(prev => {
-          const existingIndex = prev.findIndex(resp => resp.student === student);
-          if (existingIndex !== -1) {
-            const newResponses = [...prev];
-            newResponses[existingIndex] = { student, answer, timestamp: new Date() };
-            return newResponses;
-          } else {
-            return [...prev, { student, answer, timestamp: new Date() }];
-          }
-        });
+        if (answer.length === 1) { // Make sure we only process single letter answers (a, b, c, d)
+          addStudentResponse(student.trim(), answer.trim().toLowerCase());
+          
+          // Also update local state for display
+          setLocalResponses(prev => {
+            const existingIndex = prev.findIndex(resp => resp.student === student);
+            if (existingIndex !== -1) {
+              const newResponses = [...prev];
+              newResponses[existingIndex] = { student, answer: answer.trim().toLowerCase(), timestamp: new Date() };
+              return newResponses;
+            } else {
+              return [...prev, { student, answer: answer.trim().toLowerCase(), timestamp: new Date() }];
+            }
+          });
+        }
       }
     }
   };

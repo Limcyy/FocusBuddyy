@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useSerial } from '../context/SerialContext';
 import serialCommunication from '../utils/serialCommunication';
@@ -11,59 +11,99 @@ function AddPointsPage() {
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [pingTimeout, setPingTimeout] = useState(null);
+  const timeoutRef = useRef(null);
+  const pingAttemptsRef = useRef(0);
+  const maxPingAttempts = 3;
+
+  // Keep track of whether we're currently listening for student responses
+  const listeningForResponsesRef = useRef(false);
 
   // Request student list when component mounts
   useEffect(() => {
-    const fetchStudents = async () => {
-      if (!isConnected) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // Set up response callback
-        serialCommunication.setDataReceivedCallback(handleSerialData);
-        
-        // Clear existing students
-        setStudents([]);
-        
-        // Send ping to get student list
-        await serialCommunication.sendData("ping");
-        console.log("Ping sent to microbit");
-        
-        // Give some time for responses - clear any existing timeout
-        if (pingTimeout) {
-          clearTimeout(pingTimeout);
-        }
-        
-        const timeout = setTimeout(() => {
-          // If we received no responses, show an error
-          if (students.length === 0) {
-            setError('No students received from microbit. Make sure your microbit is set up correctly.');
-          }
-          setIsLoading(false);
-        }, 5000);
-        
-        setPingTimeout(timeout);
-      } catch (err) {
-        console.error("Serial communication error:", err);
-        setError('Error communicating with microbit');
-        setIsLoading(false);
-      }
-    };
-
-    fetchStudents();
+    if (isConnected) {
+      fetchStudentList();
+    } else {
+      setIsLoading(false);
+    }
 
     return () => {
       serialCommunication.setDataReceivedCallback(null);
-      if (pingTimeout) {
-        clearTimeout(pingTimeout);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
   }, [isConnected]);
 
+  const fetchStudentList = async () => {
+    if (!isConnected) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Set up response callback
+      serialCommunication.setDataReceivedCallback(handleSerialData);
+      
+      // Clear existing student list and reset state
+      setStudents([]);
+      setError('');
+      setIsLoading(true);
+      listeningForResponsesRef.current = true;
+      pingAttemptsRef.current = 0;
+      
+      // Send ping to get student list
+      await sendPingCommand();
+      
+    } catch (err) {
+      console.error("Serial communication error:", err);
+      setError('Chyba při komunikaci s microbit zařízením');
+      setIsLoading(false);
+      listeningForResponsesRef.current = false;
+    }
+  };
+
+  const sendPingCommand = async () => {
+    try {
+      pingAttemptsRef.current++;
+      console.log(`Sending ping attempt ${pingAttemptsRef.current}...`);
+      
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      // Send ping command
+      await serialCommunication.sendData("ping");
+      
+      // Set a timeout to check if we received a response
+      timeoutRef.current = setTimeout(() => {
+        // If we still have no students and have attempts left, try again
+        if (students.length === 0 && pingAttemptsRef.current < maxPingAttempts) {
+          console.log(`No response received, trying again (attempt ${pingAttemptsRef.current + 1} of ${maxPingAttempts})...`);
+          sendPingCommand();
+        } else if (students.length === 0) {
+          // If we've tried multiple times and still have no students, show an error
+          setError('Žádní studenti nebyli nalezeni. Zkontrolujte připojení k microbit zařízení.');
+          setIsLoading(false);
+          listeningForResponsesRef.current = false;
+        } else {
+          // We have some students, but no more are coming in
+          setIsLoading(false);
+        }
+      }, 8000); // Longer timeout (8 seconds) to give microbit time to respond
+      
+    } catch (err) {
+      console.error("Error sending ping:", err);
+      setError('Chyba při odesílání ping příkazu');
+      setIsLoading(false);
+      listeningForResponsesRef.current = false;
+    }
+  };
+
   const handleSerialData = (data) => {
+    // If we're not listening for responses, ignore the data
+    if (!listeningForResponsesRef.current) return;
+    
     // Process incoming data from microbit
     console.log("Received from microbit:", data);
     
@@ -73,28 +113,37 @@ function AddPointsPage() {
     if (trimmedData.startsWith('USER:')) {
       // Format: USER:S1
       const studentId = trimmedData.substring(5).trim();
-      if (studentId) {
+      
+      if (studentId && !studentId.includes('|')) {
+        // Valid student ID, add to our list
         addStudent(studentId);
+        
+        // Received a valid response, so we can stop the loading state
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = setTimeout(() => {
+            // After a short delay, assume we have all students
+            setIsLoading(false);
+          }, 2000);
+        }
       }
+    } else if (trimmedData === 'CLEAR_USERS') {
+      // Clear the student list
+      setStudents([]);
     } else if (trimmedData.startsWith('LIST:')) {
       // Format: LIST:S1,S2,S3
+      setStudents([]); // Clear list first
+      
       const userList = trimmedData.substring(5).trim();
       if (userList) {
-        const userArray = userList.split(',').map(s => s.trim()).filter(Boolean);
-        setStudents(prev => {
-          const combined = [...prev];
-          for (const user of userArray) {
-            if (!combined.includes(user)) {
-              combined.push(user);
-            }
-          }
-          return combined;
-        });
+        const userArray = userList.split(',')
+          .map(s => s.trim())
+          .filter(s => s && !s.includes('|')); // Filter out empty or malformed IDs
+        
+        setStudents(userArray);
         setIsLoading(false);
+        listeningForResponsesRef.current = false; // Stop listening after getting full list
       }
-    } else if (trimmedData.includes('|')) {
-      // Possibly a response with format S1|answer - not relevant here
-      // But we could parse it if needed
     }
   };
   
@@ -108,7 +157,6 @@ function AddPointsPage() {
       }
       return prev;
     });
-    setIsLoading(false);
   };
 
   const toggleStudent = (studentId) => {
@@ -119,41 +167,8 @@ function AddPointsPage() {
     }
   };
 
-  const refreshStudentList = async () => {
-    if (!isConnected) {
-      setError('Please connect to microbit first');
-      return;
-    }
-    
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      // Clear existing student list
-      setStudents([]);
-      
-      // Send ping to get student list
-      await serialCommunication.sendData("ping");
-      console.log("Refreshing student list...");
-      
-      // Set timeout to check if we got responses
-      if (pingTimeout) {
-        clearTimeout(pingTimeout);
-      }
-      
-      const timeout = setTimeout(() => {
-        if (students.length === 0) {
-          setError('No students received from microbit');
-        }
-        setIsLoading(false);
-      }, 5000);
-      
-      setPingTimeout(timeout);
-    } catch (err) {
-      console.error("Error refreshing student list:", err);
-      setError('Failed to refresh student list');
-      setIsLoading(false);
-    }
+  const refreshStudentList = () => {
+    fetchStudentList();
   };
 
   const submitPoints = async () => {
@@ -197,7 +212,10 @@ function AddPointsPage() {
         <div className="deviding-line"></div>
         
         {isLoading ? (
-          <div className="loading-message">Načítání studentů...</div>
+          <div className="loading-message">
+            Načítání studentů...
+            <div className="ping-status">Odesílám ping příkaz na microbit</div>
+          </div>
         ) : students.length > 0 ? (
           <>
             <div className="students-grid-container">
@@ -214,8 +232,9 @@ function AddPointsPage() {
             <button 
               className="refresh-students-btn" 
               onClick={refreshStudentList}
+              disabled={isLoading}
             >
-              <i className="fas fa-sync"></i> Obnovit seznam studentů
+              {isLoading ? 'Načítání...' : 'Obnovit seznam studentů'}
             </button>
           </>
         ) : (
@@ -225,9 +244,10 @@ function AddPointsPage() {
             <button 
               className="refresh-students-btn" 
               onClick={refreshStudentList}
+              disabled={isLoading}
               style={{ marginTop: '1rem' }}
             >
-              Zkusit znovu
+              {isLoading ? 'Načítání...' : 'Zkusit znovu'}
             </button>
           </div>
         )}
