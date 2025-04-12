@@ -19,12 +19,17 @@ function QuestionDisplayPage() {
   }, []);
   
   const handleSerialData = (data) => {
-    // Process incoming data from microbit
+    // Process incoming data from microbit in format "USER|answer" (e.g., "S1|a")
+    console.log("Received from microbit:", data);
+    
     const trimmedData = data.trim();
     if (trimmedData.includes('|')) {
       const [student, answer] = trimmedData.split('|');
-      // Add to the responses
-      setStudentResponses(prev => [...prev, { student, answer, timestamp: new Date() }]);
+      // Make sure it's a valid student response
+      if (student && answer) {
+        // Add to the responses
+        setStudentResponses(prev => [...prev, { student, answer, timestamp: new Date() }]);
+      }
     }
   };
 
@@ -75,7 +80,7 @@ function QuestionDisplayPage() {
         
         {studentResponses.length > 0 && (
           <div className="student-responses">
-            <h3>Student Responses:</h3>
+            <h3>Odpovědi studentů:</h3>
             <div className="responses-list">
               {studentResponses.map((response, index) => (
                 <div key={index} className="response-item">

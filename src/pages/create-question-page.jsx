@@ -44,8 +44,7 @@ function CreateQuestionPage() {
   const handleSerialData = (data) => {
     // Process incoming data from microbit
     console.log("Received from microbit:", data);
-    // Example: "S1|a" means Student 1 answered option a
-    // You can process this data as needed
+    // Format: "USER|answer" (e.g., "S1|a")
   };
 
   const handleOptionChange = (index, value) => {
@@ -91,8 +90,8 @@ function CreateQuestionPage() {
       }
 
       try {
-        // Send the question command to microbit
-        await serialCommunication.sendData("all|question");
+        // Send the question command to microbit - using the new format "question"
+        await serialCommunication.sendData("question");
         console.log("Question sent to microbit");
         
         updateQuestionData({

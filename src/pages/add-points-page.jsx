@@ -92,9 +92,9 @@ function AddPointsPage() {
         return;
       }
 
-      // Send points to each selected student
+      // Send points to each selected student - using the format "USER|points"
       for (const student of selectedStudents) {
-        await serialCommunication.sendData(`${student}|points|${points}`);
+        await serialCommunication.sendData(`${student}|${points}`);
         console.log(`Points sent to ${student}: ${points}`);
       }
 
