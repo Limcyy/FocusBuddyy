@@ -5,7 +5,7 @@ import serialCommunication from '../utils/serialCommunication';
 
 function QuestionDisplayPage() {
   const navigate = useNavigate();
-  const { questionData, addStudentResponse, studentResponses } = useQuestion();
+  const { questionData, addStudentResponse } = useQuestion();
   const [timeLeft, setTimeLeft] = useState(questionData.timeLimit);
   const [localResponses, setLocalResponses] = useState([]);
 
@@ -19,7 +19,7 @@ function QuestionDisplayPage() {
   }, []);
   
   const handleSerialData = (data) => {
-    // Process incoming data from microbit in format "USER|answer" (e.g., "S1|a")
+    // Process incoming data from microbit in format "USER|answer" (e.g., "S1|1")
     console.log("Received from microbit:", data);
     
     const trimmedData = data.trim();
@@ -28,7 +28,7 @@ function QuestionDisplayPage() {
     let student, answer;
     
     if (trimmedData.includes('|')) {
-      // Format: "S1|a"
+      // Format: "S1|1"
       [student, answer] = trimmedData.split('|');
       
       // Clean up student ID - remove any "USER:" prefix
@@ -37,23 +37,29 @@ function QuestionDisplayPage() {
       }
       
       // Make sure it's a valid student response
-      if (student && answer) {
+      if (student) {
         // Store in context so it's available to results page
-        if (answer.length === 1) { // Make sure we only process single letter answers (a, b, c, d)
-          addStudentResponse(student.trim(), answer.trim().toLowerCase());
-          
-          // Also update local state for display
-          setLocalResponses(prev => {
-            const existingIndex = prev.findIndex(resp => resp.student === student);
-            if (existingIndex !== -1) {
-              const newResponses = [...prev];
-              newResponses[existingIndex] = { student, answer: answer.trim().toLowerCase(), timestamp: new Date() };
-              return newResponses;
-            } else {
-              return [...prev, { student, answer: answer.trim().toLowerCase(), timestamp: new Date() }];
-            }
-          });
-        }
+        addStudentResponse(student.trim(), answer);
+        
+        // Also update local state for display
+        setLocalResponses(prev => {
+          const existingIndex = prev.findIndex(resp => resp.student === student);
+          if (existingIndex !== -1) {
+            const newResponses = [...prev];
+            newResponses[existingIndex] = { 
+              student, 
+              answer, 
+              timestamp: new Date() 
+            };
+            return newResponses;
+          } else {
+            return [...prev, { 
+              student, 
+              answer, 
+              timestamp: new Date() 
+            }];
+          }
+        });
       }
     }
   };
@@ -83,13 +89,13 @@ function QuestionDisplayPage() {
 
   if (!questionData.title) return null;
 
-  // Map letter answers to colors for visual indication
+  // Map numeric answers to colors for visual indication
   const getAnswerColor = (answer) => {
-    switch(answer.toLowerCase()) {
-      case 'a': return '#F0BA20'; // yellow
-      case 'b': return '#F0484B'; // red
-      case 'c': return '#81C75B'; // green
-      case 'd': return '#4F90CD'; // blue
+    switch(answer) {
+      case '1': return '#F0BA20'; // yellow
+      case '2': return '#F0484B'; // red
+      case '3': return '#81C75B'; // green
+      case '4': return '#4F90CD'; // blue
       default: return '#888888';
     }
   };
@@ -125,7 +131,7 @@ function QuestionDisplayPage() {
                     className="student-answer"
                     style={{ backgroundColor: getAnswerColor(response.answer), color: 'white', padding: '0 8px', borderRadius: '4px' }}
                   >
-                    {response.answer.toUpperCase()}
+                    {response.answer || '?'}
                   </span>
                 </div>
               ))}
